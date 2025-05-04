@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>SyForummmm - 验证</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://chat.rlmk.cc/xiaomao/darkico.ico" media="(prefers-color-scheme: light)">
+    <link rel="icon" href="https://chat.rlmk.cc/xiaomao/lightico.ico" media="(prefers-color-scheme: dark)">
+    <link rel="stylesheet" href="https://chat.rlmk.cc/app/css/pico.violet.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-image: url('https://chat.rlmk.cc/xiaomao/prx.png');
+            background-size: cover;
+            background-position: center;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                background-image: url('https://chat.rlmk.cc/xiaomao/prx-dark.png');
+            }
+        }
+
+        .login-form {
+            max-width: 400px;
+            border-radius: 20px;
+            padding: 1.8rem;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-box-shadow);
+            backdrop-filter: blur(12px);
+        }
+
+        .token {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .token a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .token a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="login-form">
+        <hgroup>
+            <h1>QQ验证 - 抄的XMChat</h1>
+            <h2>请输入您的信息以验证喵</h2>
+        </hgroup>
+        <form id="verifyForm">
+            <div style="display: flex; gap: 0.5rem;">
+                <input type="text" id="qq" name="qq" placeholder="QQ号" aria-label="QQ号" required style="flex: 1;">
+                <button type="button" class="secondary" onclick="sendCode()">发送</button>
+            </div>
+            <input type="text" id="code" name="code" placeholder="验证码" aria-label="验证码" required>
+            <button type="submit" class="secondary">验证</button>
+        </form>
+        <script>
+            let countdown = 0;
+            const sendButton = document.querySelector('button[onclick="sendCode()"]');
+
+            async function sendCode() {
+                if (countdown > 0) {
+                    alert(`请等待 ${countdown} 秒后再试`);
+                    return;
+                }
+
+                const qq = document.getElementById('qq').value;
+                if (!qq) {
+                    alert('请输入QQ号');
+                    return;
+                }
+
+                sendButton.disabled = true;
+                try {
+                    const response = await fetch(`/api/send_qqverify?qq=${qq}`);
+                    const data = await response.json();
+                    if (response.ok) {
+                        alert('验证码已发送');
+                        startCountdown();
+                    } else {
+                        alert(data.detail);
+                        sendButton.disabled = false;
+                    }
+                } catch (error) {
+                    alert(error.detail);
+                    sendButton.disabled = false;
+                }
+            }
+
+            function startCountdown() {
+                countdown = 60;
+                const interval = setInterval(() => {
+                    countdown--;
+                    sendButton.textContent = `重新发送 (${countdown}s)`;
+                    if (countdown <= 0) {
+                        clearInterval(interval);
+                        sendButton.textContent = '发送';
+                        sendButton.disabled = false;
+                    }
+                }, 1000);
+            }
+
+            document.getElementById('verifyForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const qq = document.getElementById('qq').value;
+                const code = document.getElementById('code').value;
+                if (!qq || !code) {
+                    alert('请输入QQ号和验证码');
+                    return;
+                }
+                try {
+                    const response = await fetch(`/api/qqverify?qq=${qq}&code=${code}`);
+                    const data = await response.json();
+                    if (response.ok) {
+                        localStorage.setItem('auth', JSON.stringify({
+                            access_token: data.access_token,
+                            token_type: data.token_type
+                        }));
+                        window.location.href = '/';
+                    } else {
+                        alert(data.detail);
+                    }
+                } catch (error) {
+                    alert(error.detail);
+                }
+            });
+        </script>
+    </main>
+</body>
+
+</html>

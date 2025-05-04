@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>SyForummmm-实验论坛</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://chat.rlmk.cc/app/css/pico.violet.min.css">
+    <style>
+        body,
+        html {
+            min-height: 100%;
+            margin: 0;
+            background-image: url('https://img.picui.cn/free/2025/04/17/67fffc95bba01.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            backdrop-filter: blur(20px);
+            background-color: rgba(195, 190, 230, 0.733);
+        }
+
+        article {
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        article:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+
+<body data-theme="light">
+    <nav class="container-fluid">
+        <ul>
+            <li><strong>SyForummmm<sup>ByXmDev</sup></strong></li>
+        </ul>
+        <ul>
+            <li><a href="/" role="button">🏠 首页</a></li>
+            <li><a href="/token" role="button">🍉验证</a></li>
+        </ul>
+    </nav>
+    <main class="container" style="margin-top: 6rem;">
+        <form id="post-form">
+            <label for="title">标题</label>
+            <input type="text" id="title" name="title" required>
+            <label for="content">内容</label>
+            <textarea id="content" name="content" rows="6" required></textarea>
+            <label for="qq">QQ 号码</label>
+            <input type="text" id="qq" name="qq" pattern="[0-9]{5,12}" required>
+            <label for="attachment">附件（可多选）</label>
+            <input type="file" id="attachment" name="attachment" accept=".pdf,.doc,.docx,.txt" multiple>
+            <label>
+                <input type="checkbox" id="anonymous" name="anonymous">
+                匿名发布
+            </label>
+            <label>
+                <input type="checkbox" id="agree" name="agree" required>
+                我已阅读并同意<a href="/static/8e827c5e08281a2e1051d6cebe6d31f1b73a6e9d897dc8631bac2abaddf667e6.pdf"
+                    target="_blank">用户协议</a>
+            </label>
+            <button type="submit">发布</button>
+            <div style="margin-top: 1rem;">
+                <progress id="upload-progress" value="0" max="100" style="width: 100%;"></progress>
+            </div>
+        </form>
+    </main>
+    <footer class="container" style="margin-top: 2rem; text-align: center;">
+        <p>© 2025 XiaoMao. All rights reserved.</p>
+        <div style="margin-top: 1rem; display: flex; justify-content: center; align-items: center; gap: 1rem;">
+            <img src="/static/Cloudflare.png" style="height: 28px;">
+            <img src="/static/VSCode.png" style="height: 28px;">
+            <img src="/static/Python.png" style="height: 28px;">
+            <img src="/static/HTML.png" style="height: 28px;">
+            <img src="/static/CSS.png" style="height: 28px;">
+        </div>
+    </footer>
+    <script>
+        document.getElementById('post-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            if (!document.getElementById('agree').checked) return alert('请先同意用户协议');
+            
+            const agreementRes = await fetch('/api/agreement', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${JSON.parse(localStorage.getItem('auth')).access_token}`
+                },
+                body: JSON.stringify({
+                    qq: document.getElementById('qq').value,
+                    agreement: '8e827c5e08281a2e1051d6cebe6d31f1b73a6e9d897dc8631bac2abaddf667e6'
+                })
+            });
+            if (!agreementRes.ok) {
+                const error = await agreementRes.json();
+                return alert(error.detail);
+            }
+
+            const formData = new FormData();
+            const files = document.getElementById('attachment').files;
+
+            for (let file of files) {
+                formData.append('file', file);
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${JSON.parse(localStorage.getItem('auth')).access_token}` },
+                    body: formData
+                });
+                if (!res.ok) {
+                    const error = await res.json();
+                    return alert(error.detail);
+                }
+                const progress = document.getElementById('upload-progress');
+                progress.value = ((files.indexOf(file) + 1) / files.length) * 100;
+            }
+
+            const res = await fetch('/api/post', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${JSON.parse(localStorage.getItem('auth')).access_token}`
+                },
+                body: JSON.stringify({
+                    qq: document.getElementById('qq').value,
+                    title: document.getElementById('title').value,
+                    text: document.getElementById('content').value,
+                    other: files.length ? [...files].map(f => 'other-' + f.name).join('-') : null,
+                    anonymous: document.getElementById('anonymous').checked
+                })
+            });
+            const data = await res.json();
+            if (data.status === 'success') {
+                window.location.href = '/';
+            } else {
+                alert(data.detail);
+            }
+        });
+    </script>
+</body>
+
+</html>

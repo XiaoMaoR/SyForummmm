@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>帖子详情 - SyForummmm</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://chat.rlmk.cc/app/css/pico.violet.min.css">
+    <style>
+        body,
+        html {
+            min-height: 100%;
+            margin: 0;
+            background-image: url('https://img.picui.cn/free/2025/04/17/67fffc95bba01.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            background-color: rgba(195, 190, 230, 0.733);
+        }
+
+        main {
+            padding-top: 5rem;
+            margin-top: 5rem;
+        }
+
+        #post-detail {
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #post-detail:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        img[style*="width: 100px"],
+        video[style*="width: 100px"] {
+            border-radius: 8px;
+            transition: transform 0.3s ease;
+        }
+
+        img[style*="width: 100px"]:hover,
+        video[style*="width: 100px"]:hover {
+            transform: scale(1.1);
+            cursor: pointer;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
+
+        dialog {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            border: none;
+        }
+
+        dialog[open] article {
+            animation: fadeIn 0.3s ease-out;
+            transform-origin: center;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(2px);
+        }
+
+        dialog[open].hide article {
+            animation: fadeOut 0.4s ease-out;
+        }
+    </style>
+</head>
+
+<body data-theme="light">
+    <nav class="container-fluid">
+        <ul>
+            <li><strong>SyForummmm<sup>ByXmDev</sup></strong></li>
+        </ul>
+        <ul>
+            <li><a href="/" role="button">🏠 首页</a></li>
+            <li><a href="#!" role="button" onclick="document.getElementById('comment-modal').showModal()">💬 评论</a></li>
+        </ul>
+    </nav>
+    <dialog id="comment-modal">
+        <article>
+            <header>
+                <button aria-label="Close" rel="prev"
+                    onclick="document.getElementById('comment-modal').close()"></button>
+                <p>发表评论</p>
+            </header>
+            <form id="comment-form" onsubmit="submitComment(event)">
+                <label for="qq">QQ号</label>
+                <input type="text" id="qq" name="qq" required placeholder="请输入你的QQ号">
+                <label for="comment">评论内容</label>
+                <textarea id="comment" name="comment" required placeholder="请输入评论内容"></textarea>
+                <button type="submit">提交评论</button>
+            </form>
+        </article>
+    </dialog>
+    <main class="container">
+        <article id="post-detail">
+            <header>
+                <h2 id="post-title"></h2>
+                <small id="post-meta"></small>
+            </header>
+            <p id="post-content"></p>
+            <footer id="post-footer"></footer>
+        </article>
+        <section id="comments-section" style="margin-top: 2rem;">
+            <h3>评论</h3>
+            <div id="comments-list"></div>
+        </section>
+    </main>
+    <dialog id="modal">
+        <article>
+            <header>
+                <button aria-label="Close" rel="prev" onclick="document.getElementById('modal').close()"></button>
+                <p>附件预览</p>
+            </header>
+            <img id="attachment-image" src="" alt="" style="max-width: 100%; display: none;">
+            <video id="attachment-video" controls style="max-width: 100%; display: none;"></video>
+        </article>
+    </dialog>
+    <footer class="container" style="margin-top: 2rem; text-align: center;">
+        <p>© 2025 XiaoMao. All rights reserved.</p>
+        <div style="margin-top: 1rem; display: flex; justify-content: center; align-items: center; gap: 1rem;">
+            <img src="/static/Cloudflare.png" style="height: 28px;">
+            <img src="/static/VSCode.png" style="height: 28px;">
+            <img src="/static/Python.png" style="height: 28px;">
+            <img src="/static/HTML.png" style="height: 28px;">
+            <img src="/static/CSS.png" style="height: 28px;">
+        </div>
+    </footer>
+    <script>
+        async function submitComment(event) {
+            event.preventDefault();
+            const qq = document.getElementById('qq').value;
+            const comment = document.getElementById('comment').value;
+            const postId = parseInt(window.location.pathname.split('/').pop());
+
+            if (!qq || !comment) {
+                alert('请填写QQ号和评论内容');
+                return;
+            }
+
+            try {
+                const auth = JSON.parse(localStorage.getItem('auth') || '{}');
+                const response = await fetch('/api/comment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `${auth.token_type} ${auth.access_token}`
+                    },
+                    body: JSON.stringify({
+                        id: postId,
+                        qq: qq,
+                        text: comment
+                    })
+                });
+                const result = await response.json();
+                if (!response.ok || result.status !== 'success') {
+                    throw new Error(JSON.stringify(result));
+                }
+                alert('评论提交成功！');
+                document.getElementById('comment-modal').close();
+                loadComments();
+            } catch (error) {
+                console.error('提交评论失败:', error);
+                alert(error.detail);
+            }
+        }
+
+        async function loadComments() {
+            try {
+                const postId = window.location.pathname.split('/').pop();
+                const response = await fetch(`/api/getinfo/${postId}`);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    const comments = result.data.comment || [];
+                    const commentsList = document.getElementById('comments-list');
+                    commentsList.innerHTML = comments.map(comment => `
+                        <article style="margin-bottom: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border-radius: 8px;">
+                            <header>
+                                <img src="https://q1.qlogo.cn/g?b=qq&nk=${comment.qq}&s=40" style="width: 24px; height: 24px; border-radius: 50%; vertical-align: middle; margin-right: 0.5rem;">
+                                <small style="color: #333;">${comment.qq}</small>
+                                <small style="margin-left: 0.5rem; color: #333;">${new Date(comment.timestamp * 1000).toLocaleString()}</small>
+                            </header>
+                            <p>${comment.text}</p>
+                        </article>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('加载评论失败:', error);
+            }
+        }
+
+        async function loadPostDetail() {
+            const postId = window.location.pathname.split('/').pop();
+            try {
+                const response = await fetch(`/api/getinfo/${postId}`);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    const post = result.data;
+                    document.getElementById('post-title').textContent = post.title;
+                    document.getElementById('post-content').textContent = post.text;
+                    const date = new Date(post.timestamp * 1000).toLocaleString();
+                    const avatarUrl = `https://q1.qlogo.cn/g?b=qq&nk=${post.qq}&s=100`;
+                    document.getElementById('post-meta').innerHTML = `
+                        <img src="${avatarUrl}" style="width: 28px; height: 28px; border-radius: 50%; vertical-align: middle; margin-right: 0.5rem;">
+                        <span style="color: #333;">qq-${post.qq}  |  ${date}</span>
+                    `;
+                    if (post.other) {
+                        const attachments = post.other.split('-');
+                        const attachmentHtml = attachments.map(attachment => {
+                            const extension = attachment.split('.').pop().toLowerCase();
+                            if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
+                                return `
+                                    <a href="#!" onclick="event.preventDefault(); document.getElementById('attachment-image').src = '${attachment}'; document.getElementById('attachment-image').alt = '图片附件'; document.getElementById('attachment-image').style.display = 'block'; document.getElementById('attachment-video').style.display = 'none'; document.getElementById('modal').showModal();">
+                                        <img src="${attachment}" style="width: 100px; height: 100px; object-fit: cover; margin: 0.5rem;" alt="图片缩略图">
+                                    </a>
+                                `;
+                            } else if (['mp3', 'wav', 'ogg'].includes(extension)) {
+                                return `<audio controls src="${attachment}" style="width: 100%; margin-top: 1rem;"></audio>`;
+                            } else if (['mp4', 'webm', 'ogg'].includes(extension)) {
+                                return `
+                                    <a href="#!" onclick="event.preventDefault(); document.getElementById('attachment-video').src = '${attachment}'; document.getElementById('attachment-video').style.display = 'block'; document.getElementById('attachment-image').style.display = 'none'; document.getElementById('modal').showModal();">
+                                        <video src="${attachment}" style="width: 100px; height: 100px; object-fit: cover; margin: 0.5rem;"></video>
+                                    </a>
+                                `;
+                            } else {
+                                return `<a href="${attachment}" download style="display: block; margin-top: 1rem;">下载附件</a>`;
+                            }
+                        }).join('');
+                        document.getElementById('post-footer').innerHTML = `<small style="color: #333;">附件：</small>${attachmentHtml}`;
+                    }
+                }
+            } catch (error) {
+                console.error('错误:', error);
+            }
+        }
+        window.addEventListener('load', () => {
+            loadPostDetail();
+            loadComments();
+        });
+    </script>
+</body>
+
+</html>

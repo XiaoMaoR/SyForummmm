@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <title>SyForummmm - 实验论坛</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://chat.rlmk.cc/app/css/pico.violet.min.css">
+    <style>
+        body,
+        html {
+            min-height: 100%;
+            margin: 0;
+            background-image: url('https://img.picui.cn/free/2025/04/17/67fffc95bba01.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            backdrop-filter: blur(20px);
+            background-color: rgba(195, 190, 230, 0.733);
+        }
+
+        article {
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        article:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+
+<body data-theme="light">
+    <nav class="container-fluid">
+        <ul>
+            <li><strong>SyForummmm<sup>ByXmDev</sup></strong></li>
+        </ul>
+        <ul>
+            <li><a href="/post" role="button">🥕发帖</a></li>
+            <li><a href="/token" role="button">🍉验证</a></li>
+        </ul>
+    </nav>
+    <main class="container" style="margin-top: 6rem;">
+        <div id="forum-list"></div>
+    </main>
+    <footer class="container" style="margin-top: 2rem; text-align: center;">
+        <p>© 2025 XiaoMao. All rights reserved.</p>
+        <div style="margin-top: 1rem; display: flex; justify-content: center; align-items: center; gap: 1rem;">
+            <img src="/static/Cloudflare.png" style="height: 28px;">
+            <img src="/static/VSCode.png" style="height: 28px;">
+            <img src="/static/Python.png" style="height: 28px;">
+            <img src="/static/HTML.png" style="height: 28px;">
+            <img src="/static/CSS.png" style="height: 28px;">
+        </div>
+    </footer>
+    <script>
+        async function loadForumList(page = 1) {
+            try {
+                const response = await fetch(`/api/getlist/${page}`);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    const listContainer = document.getElementById('forum-list');
+                    listContainer.innerHTML = result.data.map(item => `
+                        <article>
+                                <h3>${item.title}</h3>
+                            <footer>
+                                <a href="/info/${item.id}"><small>查看该帖 >>> uid${item.id}</small></a>
+                            </footer>
+                        </article>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('加载论坛列表失败:', error);
+            }
+        }
+        window.addEventListener('load', () => loadForumList(1));
+    </script>
+</body>
+
+</html>
